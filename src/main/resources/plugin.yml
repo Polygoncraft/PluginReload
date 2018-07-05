@@ -1,0 +1,21 @@
+name: ${project.artifactId}
+authors: ${project.authors}
+version: ${major.version}.b${buildNumber}
+main: ${project.main}
+permissions:
+    pluginreload.usePlugin:
+        description: Gives a player the use of this plugin
+        default: false
+commands:
+    pluginenable:
+        description: Enables specified plugin
+        usage: /pluginenable <pluginName>
+        permission: pluginreload.usePlugin
+    plugindisable:
+        description: Disables specified plugin
+        usage: /plugindisable <pluginName>
+        permission: pluginreload.usePlugin
+    pluginreload:
+        description: Reloads specified plugin
+        usage: /pluginreload <pluginName>
+        permission: pluginreload.usePlugin
