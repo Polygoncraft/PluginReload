@@ -5,7 +5,7 @@ main: ${project.main}
 permissions:
     pluginreload.usePlugin:
         description: Gives a player the use of this plugin
-        default: false
+        default: op
 commands:
     pluginenable:
         description: Enables specified plugin
