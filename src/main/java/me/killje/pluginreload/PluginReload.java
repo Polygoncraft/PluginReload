@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.logging.Level;
+import java.util.logging.Logger;
  
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -44,11 +45,13 @@ public class PluginReload extends JavaPlugin {
                 if (args.length < 1) {
                     return false;
                 }
-                if (unloadPlugin(args[0])) {
-                    sender.sendMessage(ChatColor.GREEN + args[0] + " has been unloaded and disabled!");
-                } else {
+                
+                try {
+                    sender.sendMessage(unloadPlugin(args[0]));
+                } catch (NullPointerException | NoSuchFieldException | IllegalAccessException ex) {
                     sender.sendMessage(ChatColor.RED + "Failed to unload plugin!");
                 }
+                
                 return true;
             }
         });
@@ -59,10 +62,10 @@ public class PluginReload extends JavaPlugin {
                     return false;
                 }
                 
-                if (unloadPlugin(args[0])) {
-                    sender.sendMessage(ChatColor.GREEN + args[0] + " has been unloaded and disabled!");
+                try {
+                    sender.sendMessage(unloadPlugin(args[0]));
                     sender.sendMessage(loadPlugin(args[0]));
-                } else {
+                } catch (NullPointerException | NoSuchFieldException | IllegalAccessException ex) {
                     sender.sendMessage(ChatColor.RED + "Failed to unload plugin!");
                 }
                 return true;
@@ -121,52 +124,53 @@ public class PluginReload extends JavaPlugin {
         }
     }
  
-    public boolean unloadPlugin(String pl) {
+    public String unloadPlugin(String pl) throws NoSuchFieldException, IllegalAccessException, NullPointerException {
  
-        PluginManager pm = getServer().getPluginManager();
+        PluginManager pluginManager = getServer().getPluginManager();
         SimpleCommandMap cmdMap = null;
         List<Plugin> plugins = null;
         Map<String, Plugin> names = null;
         Map<String, Command> commands = null;
         Map<Event, SortedSet<RegisteredListener>> listeners = null;
         boolean reloadlisteners = true;
-        if (pm != null) {
+        if (pluginManager == null) {
+            throw new NullPointerException("Could not find pluginManager");
+        }
+        try {
+            Field pluginsField = pluginManager.getClass().getDeclaredField("plugins");
+            pluginsField.setAccessible(true);
+            plugins = (List<Plugin>) pluginsField.get(pluginManager);
+
+            Field lookupNamesField = pluginManager.getClass().getDeclaredField("lookupNames");
+            lookupNamesField.setAccessible(true);
+            names = (Map<String, Plugin>) lookupNamesField.get(pluginManager);
+
             try {
-                Field pluginsField = getServer().getPluginManager().getClass().getDeclaredField("plugins");
-                pluginsField.setAccessible(true);
-                plugins = (List<Plugin>) pluginsField.get(pm);
- 
-                Field lookupNamesField = getServer().getPluginManager().getClass().getDeclaredField("lookupNames");
-                lookupNamesField.setAccessible(true);
-                names = (Map<String, Plugin>) lookupNamesField.get(pm);
- 
-                try {
-                    Field listenersField = getServer().getPluginManager().getClass().getDeclaredField("listeners");
-                    listenersField.setAccessible(true);
-                    listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(pm);
-                } catch (Exception e) {
-                    reloadlisteners = false;
-                }
- 
-                Field commandMapField = getServer().getPluginManager().getClass().getDeclaredField("commandMap");
-                commandMapField.setAccessible(true);
-                cmdMap = (SimpleCommandMap) commandMapField.get(pm);
- 
-                Field knownCommandsField = cmdMap.getClass().getDeclaredField("knownCommands");
-                knownCommandsField.setAccessible(true);
-                commands = (Map<String, Command>) knownCommandsField.get(cmdMap);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                return false;
+                Field listenersField = pluginManager.getClass().getDeclaredField("listeners");
+                listenersField.setAccessible(true);
+                listeners = (Map<Event, SortedSet<RegisteredListener>>) listenersField.get(pluginManager);
+            } catch (IllegalAccessException | IllegalArgumentException | NoSuchFieldException | SecurityException e) {
+                reloadlisteners = false;
             }
+
+            Field commandMapField = pluginManager.getClass().getDeclaredField("commandMap");
+            commandMapField.setAccessible(true);
+            cmdMap = (SimpleCommandMap) commandMapField.get(pluginManager);
+
+            Field knownCommandsField = cmdMap.getClass().getDeclaredField("knownCommands");
+            knownCommandsField.setAccessible(true);
+            commands = (Map<String, Command>) knownCommandsField.get(cmdMap);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw e;
         }
  
         String tp = "";
-        for (Plugin p : getServer().getPluginManager().getPlugins()) {
-            if (p.getDescription().getName().equalsIgnoreCase(pl)) {
-                pm.disablePlugin(p);
-                tp += p.getName() + " ";
-                if (plugins != null && plugins.contains(p)) {
-                    plugins.remove(p);
+        for (Plugin plugin : pluginManager.getPlugins()) {
+            if (plugin.getDescription().getName().equalsIgnoreCase(pl)) {
+                pluginManager.disablePlugin(plugin);
+                tp += plugin.getName() + " ";
+                if (plugins != null && plugins.contains(plugin)) {
+                    plugins.remove(plugin);
                 }
  
                 if (names != null && names.containsKey(pl)) {
@@ -178,28 +182,26 @@ public class PluginReload extends JavaPlugin {
                         for (Iterator<RegisteredListener> it = set.iterator(); it.hasNext();) {
                             RegisteredListener value = it.next();
  
-                            if (value.getPlugin() == p) {
+                            if (value.getPlugin() == plugin) {
                                 it.remove();
                             }
                         }
                     }
                 }
  
-                if (cmdMap != null) {
-                    for (Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext();) {
-                        Map.Entry<String, Command> entry = it.next();
-                        if (entry.getValue() instanceof PluginCommand) {
-                            PluginCommand c = (PluginCommand) entry.getValue();
-                            if (c.getPlugin() == p) {
-                                c.unregister(cmdMap);
-                                it.remove();
-                            }
+                for (Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext();) {
+                    Map.Entry<String, Command> entry = it.next();
+                    if (entry.getValue() instanceof PluginCommand) {
+                        PluginCommand command = (PluginCommand) entry.getValue();
+                        if (command.getPlugin() == plugin) {
+                            command.unregister(cmdMap);
+                            it.remove();
                         }
                     }
                 }
             }
         }
-        return true;
+        return ChatColor.GREEN + tp + " has been unloaded and disabled!";
     }
  
 }
