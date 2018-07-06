@@ -7,8 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.logging.Level;
-import java.util.logging.Logger;
- 
+
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -24,9 +23,9 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.bukkit.plugin.java.JavaPlugin;
- 
+
 public class PluginReload extends JavaPlugin {
- 
+
     @Override
     public void onEnable() {
         getCommand("pluginenable").setExecutor(new CommandExecutor() {
@@ -45,13 +44,13 @@ public class PluginReload extends JavaPlugin {
                 if (args.length < 1) {
                     return false;
                 }
-                
+
                 try {
                     sender.sendMessage(unloadPlugin(args[0]));
                 } catch (NullPointerException | NoSuchFieldException | IllegalAccessException ex) {
                     sender.sendMessage(ChatColor.RED + "Failed to unload plugin!");
                 }
-                
+
                 return true;
             }
         });
@@ -61,7 +60,7 @@ public class PluginReload extends JavaPlugin {
                 if (args.length < 1) {
                     return false;
                 }
-                
+
                 try {
                     sender.sendMessage(unloadPlugin(args[0]));
                     sender.sendMessage(loadPlugin(args[0]));
@@ -72,7 +71,7 @@ public class PluginReload extends JavaPlugin {
             }
         });
     }
- 
+
     public Plugin getPlugin(String p) {
         for (Plugin pl : getServer().getPluginManager().getPlugins()) {
             if (pl.getDescription().getName().equalsIgnoreCase(p)) {
@@ -81,7 +80,7 @@ public class PluginReload extends JavaPlugin {
         }
         return null;
     }
- 
+
     public String loadPlugin(String pl) {
         Plugin targetPlugin = null;
         String msg = "";
@@ -123,9 +122,9 @@ public class PluginReload extends JavaPlugin {
             return (ChatColor.RED + "Plugin exists, but has an invalid description!");
         }
     }
- 
+
     public String unloadPlugin(String pl) throws NoSuchFieldException, IllegalAccessException, NullPointerException {
- 
+
         PluginManager pluginManager = getServer().getPluginManager();
         SimpleCommandMap cmdMap = null;
         List<Plugin> plugins = null;
@@ -163,7 +162,7 @@ public class PluginReload extends JavaPlugin {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw e;
         }
- 
+
         String tp = "";
         for (Plugin plugin : pluginManager.getPlugins()) {
             if (plugin.getDescription().getName().equalsIgnoreCase(pl)) {
@@ -172,23 +171,23 @@ public class PluginReload extends JavaPlugin {
                 if (plugins != null && plugins.contains(plugin)) {
                     plugins.remove(plugin);
                 }
- 
+
                 if (names != null && names.containsKey(pl)) {
                     names.remove(pl);
                 }
- 
+
                 if (listeners != null && reloadlisteners) {
                     for (SortedSet<RegisteredListener> set : listeners.values()) {
                         for (Iterator<RegisteredListener> it = set.iterator(); it.hasNext();) {
                             RegisteredListener value = it.next();
- 
+
                             if (value.getPlugin() == plugin) {
                                 it.remove();
                             }
                         }
                     }
                 }
- 
+
                 for (Iterator<Map.Entry<String, Command>> it = commands.entrySet().iterator(); it.hasNext();) {
                     Map.Entry<String, Command> entry = it.next();
                     if (entry.getValue() instanceof PluginCommand) {
@@ -203,5 +202,5 @@ public class PluginReload extends JavaPlugin {
         }
         return ChatColor.GREEN + tp + " has been unloaded and disabled!";
     }
- 
+
 }
