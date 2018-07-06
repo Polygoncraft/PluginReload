@@ -79,16 +79,6 @@ public class PluginReload extends JavaPlugin {
         return null;
     }
  
-    private String consolidateArgs(String[] args) {
-        String pl = args[1];
-        if (args.length > 2) {
-            for (int i = 2; i < args.length; i++) {
-                pl = pl + " " + args[i];
-            }
-        }
-        return pl;
-    }
- 
     public String loadPlugin(String pl) {
         Plugin targetPlugin = null;
         String msg = "";
