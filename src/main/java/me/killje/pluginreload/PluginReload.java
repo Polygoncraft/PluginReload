@@ -82,20 +82,20 @@ public class PluginReload extends JavaPlugin {
     }
 
     public String loadPlugin(String pl) {
-        Plugin targetPlugin = null;
+        Plugin targetPlugin;
         String msg = "";
         File pluginDir = new File("plugins");
         if (!pluginDir.isDirectory()) {
             return (ChatColor.RED + "Plugin directory not found!");
         }
         File pluginFile = new File(pluginDir, pl + ".jar");
-        // plugin.getLogger().info("Want: " + pluginFile);
+        
         if (!pluginFile.isFile()) {
             for (File f : pluginDir.listFiles()) {
                 try {
                     if (f.getName().endsWith(".jar")) {
                         PluginDescriptionFile pdf = getPluginLoader().getPluginDescription(f);
-                        // plugin.getLogger().info("Searching for " + pl + ": " + f + " -> " + pdf.getName());
+                        
                         if (pdf.getName().equalsIgnoreCase(pl)) {
                             pluginFile = f;
                             msg = "(via search) ";
